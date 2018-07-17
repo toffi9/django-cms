@@ -748,6 +748,7 @@ class Placeholder(models.Model):
     def _recalculate_plugin_positions(self, language):
         from cms.models import CMSPlugin
         cursor = CMSPlugin._get_database_cursor('write')
+
         if connection.vendor == 'sqlite':
             sql = (
                 'CREATE TEMPORARY TABLE temp AS '
@@ -772,6 +773,17 @@ class Placeholder(models.Model):
             sql = 'DROP TABLE temp'
             sql = sql.format(connection.ops.quote_name(CMSPlugin._meta.db_table))
             cursor.execute(sql)
+            return
+        elif connection.vendor == 'postgresql':
+            sql = (
+                'UPDATE {0} '
+                'SET position = RowNbrs.RowNbr '
+                'FROM ('
+                'SELECT  ID, ROW_NUMBER() OVER (ORDER BY position) AS RowNbr '
+                'FROM {0} WHERE placeholder_id=%s AND language=%s '
+                ') RowNbrs '
+                'WHERE {0}.id=RowNbrs.id'
+            )
         else:
             sql = (
                 'UPDATE {0} '
@@ -781,5 +793,6 @@ class Placeholder(models.Model):
                 'AND {0}.position > t.position'
                 ') WHERE placeholder_id=%s AND language=%s'
             )
-            sql = sql.format(connection.ops.quote_name(CMSPlugin._meta.db_table))
-            cursor.execute(sql, [self.pk, language])
+
+        sql = sql.format(connection.ops.quote_name(CMSPlugin._meta.db_table))
+        cursor.execute(sql, [self.pk, language])
