@@ -7,7 +7,7 @@ from sekizai.context import SekizaiContext
 from cms import plugin_rendering
 from cms.api import create_page, add_plugin
 from cms.cache.placeholder import get_placeholder_cache
-from cms.models import Page, Placeholder, CMSPlugin
+from cms.models import Page, Placeholder
 from cms.plugin_rendering import PluginContext
 from cms.test_utils.project.placeholderapp.models import Example1
 from cms.test_utils.testcases import CMSTestCase
