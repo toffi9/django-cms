@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from cms.exceptions import DontUsePageAttributeWarning
 from cms.models.placeholdermodel import Placeholder
+from cms.utils.compat.db import NO_CTE_SUPPORT
 from cms.utils.conf import get_cms_setting
 from cms.utils.urlutils import admin_reverse
 
@@ -290,16 +291,18 @@ class CMSPlugin(six.with_metaclass(PluginModelBase, models.Model)):
         return CMSPlugin.objects.get(pk=self.pk)
 
     def _get_descendants_count(self):
-        return len(self._get_descendants_ids())
+        if NO_CTE_SUPPORT():
+            return len(self._get_descendants_ids())
+        else:
+            cursor = CMSPlugin._get_database_cursor('write')
+            sql = _get_descendants_cte() + '\n'
+            sql += 'SELECT COUNT(*) FROM descendants;'
+            sql = sql.format(connection.ops.quote_name(CMSPlugin._meta.db_table))
+            cursor.execute(sql, [self.pk])
+            return cursor.fetchall()[0][0]
 
     def _get_descendants_ids(self):
-        if (
-            connection.vendor == 'sqlite' and
-            connection.Database.sqlite_version_info < (3, 8, 3)
-        ) or (
-            connection.vendor == 'mysql' and
-            connection.mysql_version < (8, 0)
-        ):
+        if NO_CTE_SUPPORT():
             descendants = []
             childrens = self.get_children().values_list('pk', flat=True)
             descendants.extend(childrens)

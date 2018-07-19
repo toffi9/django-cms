@@ -258,7 +258,7 @@ class RenderingTestCase(CMSTestCase):
         from djangocms_text_ckeditor.cms_plugins import TextPlugin
         from cms.plugin_pool import plugin_pool
 
-        instance = CMSPlugin.objects.order_by('pk')[0].get_plugin_instance()[0]
+        instance = self.test_placeholders['main'].get_plugins('en').first().get_bound_plugin()
 
         load_from_string = self.load_template_from_string
 
